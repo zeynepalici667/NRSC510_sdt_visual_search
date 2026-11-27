@@ -16,6 +16,7 @@ What it does, in order:
   4. Bootstraps over participants (1,000 repetitions, seed 510) for 95% intervals.
   5. Draws the d' and c figures, a bootstrap histogram, and the slopes per doubling of set size.
   6. Compares 3D with 2D, and compares slower with faster participants.
+  7. Checks the drop in d' against an unlimited-capacity model (Palmer et al., 2000).
 
 How to run: put the data CSV in the same folder as this file, then run
   python my_sdt.py
@@ -456,4 +457,89 @@ for ax, name, lab in zip(axes, ["c", "d"], ["criterion c", "sensitivity d'"]):
 axes[0].legend()
 fig.tight_layout()
 fig.savefig("my_c_vs_rt.png", dpi=200)
+
+# ===============================================================
+# 6c. Model check: does an "unlimited-capacity" model explain the drop in d'?
+# Model: Palmer, Verghese & Pavel (2000), Appendix A.3, Eqs. A22-A23
+# (equal-variance normal distributions, "max of outputs" rule).
+# For each condition I find ONE number (item_d, how well a single item is
+# detected) and ask: given how often people said "present" on empty displays
+# (the false alarms I observed), what d' would the model predict at each set size?
+# ===============================================================
+from scipy.optimize import minimize_scalar
+
+set_sizes = np.array([4, 8, 16, 32, 64, 128, 256])
+
+def model_hit(item_d, m, fa):
+    """Hit rate predicted by the unlimited-capacity model.
+    fa = the false-alarm rate that I observed at each set size m."""
+    f_noise = (1 - fa) ** (1 / m)      # chance that ALL m distractors stay below the criterion
+    u = norm.ppf(f_noise)              # the criterion that gives exactly that false-alarm rate
+    return 1 - norm.cdf(u - item_d) * f_noise ** (m - 1)
+
+def model_d_prime(d_obs, c_obs):
+    """d_obs and c_obs: 7 numbers (one per set size) for ONE dimension x condition.
+    Returns the model's d' at each of the 7 set sizes."""
+    z_hit = d_obs / 2 - c_obs          # undo d' = z_hit - z_fa and c = -0.5 (z_hit + z_fa)
+    z_fa = -d_obs / 2 - c_obs
+    fa = norm.cdf(z_fa)
+
+    def error(item_d):                 # how far is the model from my observed d'?
+        hit = np.clip(model_hit(item_d, set_sizes, fa), 1e-4, 1 - 1e-4)
+        return np.sum((norm.ppf(hit) - z_fa - d_obs) ** 2)
+
+    item_d = minimize_scalar(error, bounds=(0.1, 12), method="bounded").x
+    hit = np.clip(model_hit(item_d, set_sizes, fa), 1e-4, 1 - 1e-4)
+    return norm.ppf(hit) - z_fa
+
+def slope(y):
+    """Change in d' per doubling of set size."""
+    return np.polyfit(np.log2(set_sizes), y, 1)[0]
+
+# The 126 rows of `counts` are ordered dimension -> condition -> set size,
+# so each dimension x condition is a block of 7 consecutive columns.
+gap_rows = []
+model_lines = {}                        # saved for the figure
+for dim_i, dim in enumerate([2, 3]):
+    for cond in range(1, 10):
+        g = dim_i * 9 + (cond - 1)
+        cols = slice(g * 7, g * 7 + 7)
+
+        d_obs = counts["d_prime"].to_numpy()[cols]
+        c_obs = counts["criterion"].to_numpy()[cols]
+        d_mod = model_d_prime(d_obs, c_obs)
+        model_lines[(dim, cond)] = d_mod
+
+        # slope gap in every bootstrap repetition: observed minus model
+        gaps = np.array([slope(boot_d[i, cols]) - slope(model_d_prime(boot_d[i, cols], boot_c[i, cols]))
+                         for i in range(n_boot)])
+
+        gap_rows.append({"dimension": dim, "condition": cond,
+                         "slope_observed": slope(d_obs), "slope_model": slope(d_mod),
+                         "gap": slope(d_obs) - slope(d_mod),
+                         "gap_low": np.percentile(gaps, 2.5),
+                         "gap_high": np.percentile(gaps, 97.5)})
+
+gap_table = pd.DataFrame(gap_rows)
+print(gap_table.round(3).to_string(index=False))
+gap_table.to_csv("my_model_gap.csv", index=False)
+
+# Figure: observed d' (dots + 95% CI) against the model (line), for my four subset conditions
+fig, axes = plt.subplots(2, 4, figsize=(17, 8), sharey=True)
+for r, dim in enumerate([2, 3]):
+    for k, cond in enumerate([1, 4, 7, 9]):
+        ax = axes[r, k]
+        g = counts[(counts.dimension == dim) & (counts.condition == cond)]
+        ax.errorbar(range(7), g["d_prime"], yerr=[g["d_prime"] - g["d_low"], g["d_high"] - g["d_prime"]],
+                    fmt="o", color="#2A6FDB", capsize=3, label="Observed")
+        ax.plot(range(7), model_lines[(dim, cond)], color="#D9480F", ls="--", lw=2.5,
+                label="Unlimited-capacity model")
+        ax.set_xticks(range(7)); ax.set_xticklabels(set_sizes, fontsize=12)
+        ax.set_title(f"{dim}D, C{cond}")
+        if r == 1: ax.set_xlabel("Set size")
+        if k == 0: ax.set_ylabel("d′")
+axes[0, 0].legend(fontsize=12, loc="lower left")
+fig.tight_layout()
+fig.savefig("my_model_vs_observed.png", dpi=200)
+
 plt.show()

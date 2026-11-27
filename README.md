@@ -2,7 +2,7 @@
 
 NRSC510A final project, University of British Columbia. Author: Zeynep Alici (NOVA Lab).
 
-- **Dataverse** (data outputs, proposal, slides, license and justification):(https://demo.borealisdata.ca/previewurl.xhtml?token=5c3b5858-18f5-4228-807f-08e9bf6ee9dd)
+- **Dataverse** (data outputs, proposal, slides, license and justification): https://demo.borealisdata.ca/previewurl.xhtml?token=5c3b5858-18f5-4228-807f-08e9bf6ee9dd
 - **Data analysed:** Zhang et al. (2026), human participants only: https://doi.org/10.4121/e2b3e80f-8983-478b-a93f-8c8858fe8f96
 
 ## Research question
@@ -74,4 +74,4 @@ CC BY 4.0 (same as the Dataverse). See `LICENSE.txt`. Please also cite Zhang et 
 - Zhang, R., de Winter, J. C. F., Dodou, D., Seyffert, H., & Eisma, Y. B. (2026). Human-like attention? A psychophysical comparison of visual search in humans and MLLMs. Computational Brain & Behavior. https://doi.org/10.1007/s42113-026-00333-4
 
 ## AI assistance
-Code assisted by Claude (Anthropic).
+Code was written with guidance from Claude (Anthropic).
