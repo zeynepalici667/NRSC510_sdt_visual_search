@@ -2,7 +2,7 @@
 
 NRSC510A final project, University of British Columbia. Author: Zeynep Alici (NOVA Lab).
 
-- **Dataverse** (data outputs, proposal, slides, license and justification): https://demo.borealisdata.ca/previewurl.xhtml?token=5c3b5858-18f5-4228-807f-08e9bf6ee9dd
+- **Dataverse** (data outputs, proposal, slides, license and justification): https://demo.borealisdata.ca/dataset.xhtml?persistentId=doi%3A10.80240%2FFK2%2FNTQQQN
 - **Data analysed:** Zhang et al. (2026), human participants only: https://doi.org/10.4121/e2b3e80f-8983-478b-a93f-8c8858fe8f96
 
 ## Research question
